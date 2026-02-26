@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-People constantly encounter interesting content online—videos, articles, tutorials—but have no reliable way to save it for later without losing track. Bookmarks get buried, browser extensions are clunky, and platform-specific "Watch Later" features (YouTube, etc.) only work within their ecosystem. Users need a unified, cross-platform place to save any URL and actually go back to watch/read it.
+People constantly encounter interesting content online—videos, articles, tutorials—but have no reliable way to save it for later without losing track. Bookmarks get buried, browser extensions are clunky, and platform-specific "save for later" features (YouTube, etc.) only work within their ecosystem. Users need a unified, cross-platform place to save any URL and actually go back to watch/read it.
 
 ## Market Opportunity ⚡️
 
