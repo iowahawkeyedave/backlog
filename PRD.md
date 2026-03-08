@@ -48,7 +48,7 @@ Millions of users are looking for alternatives right now. Most existing apps foc
 | **Wallabag** | Self-hosted | Open source, privacy | Need to host yourself |
 | **Meco** | Free/$5mo | Newsletters only | Very niche |
 
-**Our Edge:** Local-first (no account needed), video+article hybrid, fast/lightweight, SpacetimeDB for sync-ready architecture.
+**Our Edge:** No-account-friendly onboarding, video+article hybrid, fast/lightweight, Convex-backed realtime architecture.
 
 ## MVP Features (Prioritized)
 

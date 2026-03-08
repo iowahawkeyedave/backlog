@@ -3,20 +3,19 @@
 ## Phase 1: Setup (30 min)
 
 - [ ] Initialize React + Vite + TypeScript project
-- [ ] Install dependencies: `zustand`, `@spacetimeDB/client`, `tailwindcss`, `uuid`
+- [ ] Install dependencies: `convex`, `zustand`, `tailwindcss`, `uuid`
 - [ ] Set up project structure (components/, lib/, stores/, types/)
 - [ ] Configure Tailwind CSS
+- [ ] Configure Convex project and generated API client
 - [ ] Verify empty shell builds and runs
 
-## Phase 2: SpacetimeDB Setup (45 min)
+## Phase 2: Convex Backend Setup (45 min)
 
-- [ ] Create SpacetimeDB account at spacetimedb.com
-- [ ] Create new database module for the app
-- [ ] Define schema (SavedItem, List, UserPrefs tables)
-- [ ] Write reducer functions (add_item, update_status, delete_item, etc.)
-- [ ] Deploy module to SpacetimeDB cloud
-- [ ] Install `@spacetimeDB/client` SDK
-- [ ] Set up client connection in `db.ts`
+- [ ] Create Convex project
+- [ ] Define schema (`items`, `lists`, `userPrefs`)
+- [ ] Write queries, mutations, and `addFromUrl` action
+- [ ] Add indexes/search indexes needed for filter and search flows
+- [ ] Set up client connection in `lib/convex.ts`
 - [ ] Test basic CRUD operations
 
 ## Phase 3: Core UI Components (60 min)
@@ -30,8 +29,8 @@
 ## Phase 4: Add Item Flow (45 min)
 
 - [ ] Build `AddItemForm` with URL input
-- [ ] Implement `scraper.ts` for metadata fetching
-- [ ] Connect form to SpacetimeDB `add` function
+- [ ] Implement Convex `items.addFromUrl` action for metadata fetching
+- [ ] Connect form to Convex action
 - [ ] Show loading state while fetching metadata
 - [ ] Handle errors (invalid URL, fetch failed)
 
@@ -47,7 +46,7 @@
 - [ ] Add search input in header
 - [ ] Implement search by title/URL
 - [ ] Add filter tabs: All / Unwatched / Watched / Archived
-- [ ] Wire up Zustand selectors
+- [ ] Wire UI state from Zustand into Convex queries
 
 ## Phase 7: Polish (30 min)
 

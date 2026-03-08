@@ -8,45 +8,60 @@
 | Language | TypeScript |
 | Styling | Tailwind CSS |
 | State | Zustand |
-| Backend | SpacetimeDB (cloud-hosted, real-time sync) |
-| URL Metadata | Custom scraper or link preview API |
+| Backend | Convex |
+| Auth | Convex Auth or anonymous-first MVP |
+| URL Metadata | Convex action + link preview API or direct fetch parser |
 
-## SpacetimeDB Schema
+## Convex Data Model
 
-SpacetimeDB is a cloud-hosted database with automatic real-time sync to all connected clients. No backend server needed—we deploy modules directly to SpacetimeDB.
+Convex provides the database, backend functions, and realtime subscriptions. The client uses generated API bindings and live queries from React.
 
-```sql
--- Main table: Saved items
-TABLE SavedItem {
-    id: string,           -- Unique ID (UUID)
-    url: string,          -- The saved URL
-    title: string,        -- Auto-fetched or user-edited
-    description: string,  -- Auto-fetched description
-    thumbnail: string,    -- URL to thumbnail image
-    domain: string,       -- For filtering (youtube.com, etc.)
-    content_type: string, -- "video" | "article" | "mixed"
-    status: string,       -- "unwatched" | "watched" | "archived"
-    created_at: u64,      -- Unix timestamp
-    updated_at: u64,      -- Unix timestamp
-    
-    -- User-assigned
-    tags: string[],       -- Array of tag strings
-    list_id: string,       -- FK to List table (optional)
-}
+```ts
+// convex/schema.ts
+defineSchema({
+  items: defineTable({
+    userId: v.optional(v.string()),
+    url: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    thumbnail: v.optional(v.string()),
+    domain: v.string(),
+    contentType: v.union(
+      v.literal("video"),
+      v.literal("article"),
+      v.literal("mixed")
+    ),
+    status: v.union(
+      v.literal("unwatched"),
+      v.literal("watched"),
+      v.literal("archived")
+    ),
+    tags: v.array(v.string()),
+    listId: v.optional(v.id("lists")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_status", ["userId", "status"])
+    .index("by_user_domain", ["userId", "domain"])
+    .searchIndex("search_title", {
+      searchField: "title",
+      filterFields: ["userId", "status", "domain"],
+    }),
 
--- Table: Custom lists
-TABLE List {
-    id: string,           -- UUID
-    name: string,         -- "YouTube", "Articles", etc.
-    color: string,        -- Hex color for UI
-    created_at: u64,
-}
+  lists: defineTable({
+    userId: v.optional(v.string()),
+    name: v.string(),
+    color: v.string(),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
 
--- Table: User preferences
-TABLE UserPrefs {
-    key: string,          -- "theme", "sortOrder", etc.
-    value: string,        -- JSON-encoded value
-}
+  userPrefs: defineTable({
+    userId: v.optional(v.string()),
+    sortOrder: v.optional(v.string()),
+    theme: v.optional(v.string()),
+  }).index("by_user", ["userId"]),
+})
 ```
 
 ## Content Type Detection
@@ -67,33 +82,45 @@ Detection logic:
 ## Data Flow
 
 ```
-User Action → React Component → Zustand Store → SpacetimeDB (Cloud)
+User Action → React Component → Zustand UI Store → Convex mutation/action
                                     ↓
-                            All connected clients get real-time update
+                              Convex database update
+                                    ↓
+                        useQuery/live subscription re-renders UI
 ```
 
-## API Routes (SpacetimeDB Reducers)
+## Backend Functions (Convex)
 
-| Reducer | Parameters | Returns |
-|---------|------------|---------|
-| `add_item(url, title?, description?, thumbnail?, content_type?)` | URL, optional metadata | `SavedItem` |
-| `update_status(id, status)` | id, status | `SavedItem` |
-| `update_item(id, updates)` | id, partial SavedItem | `SavedItem` |
-| `delete_item(id)` | id | - |
-| `create_list(name, color)` | name, color | `List` |
-| `delete_list(id)` | id | - |
+| Function | Type | Purpose |
+|----------|------|---------|
+| `items.addFromUrl` | `action` | Fetch metadata, detect content type, then create item |
+| `items.create` | `mutation` | Insert item when metadata already exists |
+| `items.updateStatus` | `mutation` | Toggle `unwatched` / `watched` / `archived` |
+| `items.update` | `mutation` | Edit title, tags, list, or description |
+| `items.remove` | `mutation` | Delete item |
+| `items.list` | `query` | Return items for current filters |
+| `items.search` | `query` | Search title/URL scoped to current user |
+| `lists.create` | `mutation` | Create list |
+| `lists.remove` | `mutation` | Delete list |
+| `lists.list` | `query` | Return user lists |
+| `prefs.get` | `query` | Read user preferences |
+| `prefs.update` | `mutation` | Save theme/sort/filter defaults |
 
-## Subscriptions (Real-time Sync)
+## Realtime Pattern
 
 ```typescript
-// Client subscribes to all items
-db.saved_items.subscribe("*")
+// Query drives UI directly
+const items = useQuery(api.items.list, {
+  status: activeFilter,
+  listId: activeListId ?? undefined,
+  search: debouncedQuery || undefined,
+})
 
-// Or filter by list
-db.saved_items.subscribe($"list_id = {activeListId}")
+// Mutations update server state
+const updateStatus = useMutation(api.items.updateStatus)
 ```
 
-SpacetimeDB pushes updates automatically when data changes.
+Convex re-runs subscribed queries automatically when matching data changes.
 
 ## Component Inventory
 
@@ -126,19 +153,27 @@ src/
 │   │   └── TagPill.tsx
 │   └── ui/              # Reusable UI (Button, Input, etc.)
 ├── lib/
-│   ├── db.ts            # SpacetimeDB client setup
-│   ├── scraper.ts       # URL metadata + content type detection
+│   ├── convex.ts        # Convex client setup
+│   ├── metadata.ts      # Shared metadata parsing helpers
 │   └── utils.ts
 ├── stores/
-│   └── useStore.ts      # Zustand store
+│   └── useStore.ts      # Zustand UI state only
 ├── types/
 │   └── index.ts
 └── App.tsx
+
+convex/
+├── schema.ts
+├── items.ts
+├── lists.ts
+├── prefs.ts
+└── tsconfig.json
 ```
 
 ## Key Implementation Notes
 
-1. **SpacetimeDB is cloud-hosted** — Data lives on their servers, not locally
-2. **Real-time sync built-in** — Clients auto-update when data changes
-3. **No traditional backend** — We write "reducers" (server functions) that deploy to SpacetimeDB
-4. **Metadata scraping** — Use a simple fetch + DOMParser for MVP, or a link preview API
+1. **Convex owns backend state** — Zustand should only keep ephemeral UI state like search text, dialogs, and local filter controls.
+2. **Use actions for metadata fetches** — External HTTP calls belong in Convex actions, not client components.
+3. **Queries are the source of truth** — Prefer `useQuery` over copying server data into Zustand.
+4. **Auth can stay optional in MVP** — Start anonymous or single-user, but keep `userId` fields in the schema so multi-user auth can be added without reshaping the app.
+5. **Search can start simple** — Use Convex search for title and client-side fallback on URL if exact URL search is needed early.

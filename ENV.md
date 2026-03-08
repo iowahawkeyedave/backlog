@@ -1,24 +1,20 @@
 # Backlog — Environment Variables
 
 ```bash
-# SpacetimeDB (cloud-hosted)
-# Get these from your SpacetimeDB dashboard after creating a module
-SPACETIMEDB_DATABASE_NAME="backlog"
-SPACETIMEDB_MODULE_NAME="backlog"
-SPACETIMEDB_TOKEN=""  # Auth token for your database
+# Convex
+VITE_CONVEX_URL=""
 
-# Optional: Metadata API (for better URL previews)
-# If not set, uses simple DOM parsing
+# Optional metadata provider
 METADATA_API_URL="https://api.linkpreview.net"
-METADATA_API_KEY=""  # Get free key at linkpreview.net
+METADATA_API_KEY=""
 
 # Development
 VITE_APP_TITLE="Backlog"
 ```
 
-## SpacetimeDB Setup
+## Convex Setup
 
-1. Go to spacetimedb.com and create an account
-2. Create a new database (e.g., "backlog")
-3. Deploy your module with the schema
-4. Copy the database name and token to these variables
+1. Create a Convex project
+2. Run `npx convex dev` to provision the local project and generate the client bindings
+3. Copy the deployed Convex URL into `VITE_CONVEX_URL` if your frontend setup needs it
+4. Add metadata API credentials if using a third-party preview service

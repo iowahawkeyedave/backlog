@@ -5,8 +5,8 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "convex": "^1.17.0",
     "zustand": "^4.5.0",
-    "@spacetimeDB/client": "^0.1.0",
     "uuid": "^9.0.0",
     "date-fns": "^3.3.0"
   },

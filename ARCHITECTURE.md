@@ -10,70 +10,76 @@
 │  └──────────┘  └──────────┘  └──────────────────────┘  │
 │         ↓              ↓                 ↓               │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │              Zustand State Store                   │   │
-│  │   - items[], lists[], searchQuery, filters       │   │
+│  │              Zustand UI Store                      │   │
+│  │   - searchQuery, activeListId, local filters      │   │
+│  └──────────────────────────────────────────────────┘   │
+│                         ↓                               │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │                Convex React Client                │   │
+│  │      - useQuery / useMutation / useAction         │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
                            ↓
-              ┌────────────────────────┐
-              │    SpacetimeDB (Cloud)  │
-              │   Real-time sync        │
-              │  ┌────────────┐  ┌──────┴───────┐         │
-              │  │ saved_items│  │ user_prefs   │         │
-              │  └────────────┘  └──────────────┘         │
-              └────────────────────────┘
+              ┌────────────────────────────────┐
+              │            Convex              │
+              │   ┌──────────┐ ┌────────────┐  │
+              │   │ queries  │ │ mutations  │  │
+              │   └──────────┘ └────────────┘  │
+              │   ┌──────────┐ ┌────────────┐  │
+              │   │ actions  │ │ database   │  │
+              │   └──────────┘ └────────────┘  │
+              └────────────────────────────────┘
 ```
 
 ## Data Flow
 
 ### Adding an Item
 1. User pastes URL in `AddItemForm`
-2. Form triggers `scraper.fetchMetadata(url)` + detect content type
-3. Metadata returned → Zustand `addItem(item)`
-4. Store calls SpacetimeDB reducer `add_item(...)`
-5. SpacetimeDB persists → pushes update to all connected clients
+2. Form calls Convex action `items.addFromUrl`
+3. Action fetches metadata, normalizes fields, and detects content type
+4. Action writes item through an internal mutation
+5. Matching queries re-run and the React list updates automatically
 
 ### Filtering
 1. User types in search or selects a list
-2. Zustand updates filter state
-3. Derived selector computes `filteredItems`
-4. Component re-renders with filtered list
+2. Zustand updates UI filter state
+3. Components pass the active filters into `useQuery(api.items.list, filters)`
+4. Convex returns filtered items and re-renders subscribers on change
 
-## State Management (Zustand)
+## State Management Split
 
 ```typescript
 interface WatchLaterStore {
-  // Data
-  items: SavedItem[]
-  lists: List[]
-  
   // UI State
   searchQuery: string
   activeListId: string | null
   activeFilter: 'all' | 'unwatched' | 'watched' | 'archived'
+  isAddItemOpen: boolean
   
-  // Actions
-  addItem: (url: string) => Promise<void>
-  updateStatus: (id: string, status: string) => void
-  deleteItem: (id: string) => void
-  createList: (name: string, color: string) => void
+  // UI Actions
   setSearch: (query: string) => void
+  setActiveList: (id: string | null) => void
+  setActiveFilter: (filter: Filter) => void
+  setAddItemOpen: (isOpen: boolean) => void
 }
 ```
+
+Server data should not be mirrored into Zustand unless there is a very specific offline or optimistic UI need.
 
 ## URL Metadata Strategy
 
 ### MVP Approach
-- Use simple `fetch(url)` + `DOMParser` to extract Open Graph tags
-- Fallback: Use a free metadata API (like linkpreview.net free tier)
-- Cache results in SpacetimeDB to avoid re-scraping
+- Use Convex action `items.addFromUrl`
+- First try a metadata API for stable previews
+- Fallback to direct fetch + HTML meta tag parsing when allowed
+- Persist normalized metadata in Convex so the client never re-scrapes the same URL
 
 ### Production Approach (Future)
-- Dedicated microservice or Cloudflare Worker
+- Move extraction into a dedicated worker if rate limits or CORS issues appear
 - Screenshot generation for visual preview
 - Video-specific metadata (YouTube duration, etc.)
 
 ## Sync Strategy
 
-**Phase 1 (MVP)**: Local-only via SpacetimeDB embedded
-**Phase 2**: Enable SpacetimeDB sync for cross-device
+**Phase 1 (MVP)**: Convex-hosted single-user or anonymous-first app with realtime queries
+**Phase 2**: Add auth, per-user isolation, and optional shared lists
