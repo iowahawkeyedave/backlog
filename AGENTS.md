@@ -73,35 +73,40 @@ export function ItemCard({ item, onToggle, onDelete }: Props) {
 
 ## State Management Rules
 
-- **Global state**: Zustand store in `stores/useStore.ts`
+- **UI state**: Zustand store in `stores/useStore.ts` (search, active list, filters, dialogs)
+- **Server data**: Convex `useQuery` / `useMutation` / `useAction` — do not copy items into Zustand
 - **Component state**: `useState` for UI-only concerns (modals, hover, etc.)
-- **No prop drilling**: Access store directly, don't pass everything down
-- **Derived data**: Use Zustand selectors, not derived state in components
+- **No prop drilling**: Access store and Convex hooks directly, don't pass everything down
+- **Derived data**: Use Zustand selectors for UI state, Convex queries for server data
 
-## SpacetimeDB Patterns (Cloud with Real-time Sync)
+## Convex Patterns (Cloud with Real-time Sync)
 
 ```typescript
-// Call a reducer (server function deployed to SpacetimeDB)
+import { useQuery, useMutation, useAction } from 'convex/react'
+import { api } from '../../convex/_generated/api'
+
+// Live query — re-renders when matching data changes
+const items = useQuery(api.items.list, {
+  status: activeFilter,
+  listId: activeListId ?? undefined,
+  search: debouncedQuery || undefined,
+})
+
+const updateStatus = useMutation(api.items.updateStatus)
+const addFromUrl = useAction(api.items.addFromUrl)
+
+// External HTTP belongs in Convex actions, not the client
 try {
-  const item = db.add_item({
-    url: url,
-    title: metadata.title,
-    description: metadata.description,
-    thumbnail: metadata.image,
-    domain: new URL(url).hostname,
-    content_type: detectContentType(url, metadata),
-    status: 'unwatched',
-    tags: [],
-    created_at: Date.now(),
-    updated_at: Date.now(),
-  })
+  await addFromUrl({ url })
 } catch (err) {
   console.error('Failed to add item:', err)
+  throw err
 }
 
-// Subscribe to real-time updates from other clients
-db.saved_items.subscribe("*")
+await updateStatus({ id: item._id, status: 'watched' })
 ```
+
+Backend layout: `convex/schema.ts`, `convex/items.ts`, `convex/lists.ts`, `convex/prefs.ts`. Use mutations for writes, queries for reads, and actions only when calling outbound APIs (URL metadata).
 
 ## Tailwind Guidelines
 
