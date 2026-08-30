@@ -47,7 +47,7 @@ export function ItemCard({ item, onToggle, onDelete }: Props) {
   const [isHovered, setIsHovered] = useState(false)
   
   // Computed
-  const statusColor = item.status === 'watched' ? 'text-green-500' : 'text-yellow-500'
+  const statusColor = item.status === 'done' ? 'text-green-500' : 'text-amber-500'
   
   // Handlers
   const handleToggle = () => onToggle(item.id)
@@ -103,7 +103,7 @@ try {
   throw err
 }
 
-await updateStatus({ id: item._id, status: 'watched' })
+await updateStatus({ id: item._id, status: 'done' })
 ```
 
 Backend layout: `convex/schema.ts`, `convex/items.ts`, `convex/lists.ts`, `convex/prefs.ts`. Use mutations for writes, queries for reads, and actions only when calling outbound APIs (URL metadata).
@@ -115,6 +115,13 @@ Backend layout: `convex/schema.ts`, `convex/items.ts`, `convex/lists.ts`, `conve
 - Mobile-first: `class="w-full md:w-1/2"`
 - Consistent spacing: use scale (1 = 4px, 2 = 8px, 4 = 16px)
 
+## Testing & Tooling
+
+- **Lint/format**: ESLint (typescript-eslint) + Prettier; `npm run lint` before marking work complete
+- **Unit tests** (Vitest): pure logic only: content-type detection, URL normalization, dedupe lookup, query arg building
+- **E2E** (Playwright): one smoke path (add URL → item appears → mark done → search finds it); run before releases
+- **Status values** are `open` / `done` / `archived`; anonymous identity is a `crypto.randomUUID()` persisted as `backlog:anonymous-id` (see TECH-SPEC.md)
+
 ## Testing Checklist
 
 Before marking complete, verify:
@@ -125,3 +132,4 @@ Before marking complete, verify:
 - [ ] Mobile responsive (test at 375px width)
 - [ ] No console errors or warnings
 - [ ] Works with empty data (empty arrays, nulls)
+- [ ] `npm run lint` passes and unit tests pass

@@ -32,8 +32,8 @@ defineSchema({
       v.literal("mixed")
     ),
     status: v.union(
-      v.literal("unwatched"),
-      v.literal("watched"),
+      v.literal("open"),
+      v.literal("done"),
       v.literal("archived")
     ),
     tags: v.array(v.string()),
@@ -44,6 +44,7 @@ defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_user_domain", ["userId", "domain"])
+    .index("by_user_url", ["userId", "url"])
     .searchIndex("search_title", {
       searchField: "title",
       filterFields: ["userId", "status", "domain"],
@@ -79,6 +80,22 @@ Detection logic:
 2. Check for `og:type` meta tag (video, article)
 3. Default to "article" if uncertain
 
+## Identity (MVP)
+
+Anonymous-first, no auth in the MVP:
+
+1. On first load the client generates an anonymous id with `crypto.randomUUID()` (no `uuid` package) and persists it in localStorage under the key `backlog:anonymous-id`.
+2. Every query, mutation, and action receives that id as a `userId` argument; it is stored in the schema's `userId` fields. The client sends nothing else identifying.
+3. When real accounts arrive later, add a mapping from account to anonymous id (a users table or one-time claim mutation) so existing items migrate without reshaping the schema.
+
+## Duplicate URL Handling
+
+Adding a URL that already exists for the user never creates a second item. Rationale: a re-add signals the item matters.
+
+1. Normalize the URL first (force https, strip trailing slash and tracking params), then query the `by_user_url` index.
+2. On match, the action updates `updatedAt` on the existing item, which surfaces it at the top of the newest-first feed, and returns it so the UI can highlight it instead of showing a generic success.
+3. No match: proceed with metadata fetch and creation.
+
 ## Data Flow
 
 ```
@@ -93,9 +110,9 @@ User Action → React Component → Zustand UI Store → Convex mutation/action
 
 | Function | Type | Purpose |
 |----------|------|---------|
-| `items.addFromUrl` | `action` | Fetch metadata, detect content type, then create item |
+| `items.addFromUrl` | `action` | Dedupe by URL, fetch metadata (with fetch guards, see ARCHITECTURE.md), detect content type, then create or bump |
 | `items.create` | `mutation` | Insert item when metadata already exists |
-| `items.updateStatus` | `mutation` | Toggle `unwatched` / `watched` / `archived` |
+| `items.updateStatus` | `mutation` | Toggle `open` / `done` / `archived` |
 | `items.update` | `mutation` | Edit title, tags, list, or description |
 | `items.remove` | `mutation` | Delete item |
 | `items.list` | `query` | Return items for current filters |

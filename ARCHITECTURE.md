@@ -36,9 +36,10 @@
 ### Adding an Item
 1. User pastes URL in `AddItemForm`
 2. Form calls Convex action `items.addFromUrl`
-3. Action fetches metadata, normalizes fields, and detects content type
-4. Action writes item through an internal mutation
-5. Matching queries re-run and the React list updates automatically
+3. Action checks the `by_user_url` index: if the URL is already saved, it bumps `updatedAt` on the existing item and returns it (dedupe, see TECH-SPEC.md)
+4. Otherwise the action fetches metadata, normalizes fields, and detects content type
+5. Action writes item through an internal mutation
+6. Matching queries re-run and the React list updates automatically
 
 ### Filtering
 1. User types in search or selects a list
@@ -49,11 +50,11 @@
 ## State Management Split
 
 ```typescript
-interface WatchLaterStore {
+interface BacklogStore {
   // UI State
   searchQuery: string
   activeListId: string | null
-  activeFilter: 'all' | 'unwatched' | 'watched' | 'archived'
+  activeFilter: 'all' | 'open' | 'done' | 'archived'
   isAddItemOpen: boolean
   
   // UI Actions
@@ -70,6 +71,7 @@ Server data should not be mirrored into Zustand unless there is a very specific 
 
 ### MVP Approach
 - Use Convex action `items.addFromUrl`
+- Fetch guards: http/https only; validate the host before requesting and reject localhost, loopback, private, and reserved address ranges; cap response size and timeout
 - First try a metadata API for stable previews
 - Fallback to direct fetch + HTML meta tag parsing when allowed
 - Persist normalized metadata in Convex so the client never re-scrapes the same URL

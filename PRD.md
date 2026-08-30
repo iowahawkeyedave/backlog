@@ -34,7 +34,7 @@ Millions of users are looking for alternatives right now. Most existing apps foc
 | User | See a thumbnail and title auto-fetched | I can quickly recognize what I saved |
 | User | See content type indicated (video vs article) | I can pick what I'm in the mood for |
 | User | Organize content into lists/tags | I can categorize by topic (e.g., "React Tutorials", "Recipes") |
-| User | Mark items as watched/unwatched | I can track my progress |
+| User | Mark items done or reopen them | I can track my progress |
 | User | Archive completed items | They don't clutter my main list |
 | User | Quick-add from mobile share or browser | I can save without opening the app |
 | User | Search through my saved items | I can find specific content fast |
@@ -53,10 +53,10 @@ Millions of users are looking for alternatives right now. Most existing apps foc
 ## MVP Features (Prioritized)
 
 ### P0 — Must Have
-1. **Add URL** — Paste/save any URL (video or article), auto-fetch title + description + thumbnail
+1. **Add URL** — Paste/save any URL (video or article), auto-fetch title + description + thumbnail; re-adding an existing URL bumps the saved item to the top instead of duplicating
 2. **Content Type Detection** — Auto-detect video vs article vs mixed
 3. **View List** — See all saved items in a clean, scrollable feed
-4. **Mark Watched/Unwatched** — Toggle completion status
+4. **Mark Done / Reopen** — Toggle completion status (videos and articles alike)
 5. **Delete Item** — Remove items from the list
 6. **Basic Search** — Filter by title/URL
 
@@ -78,3 +78,4 @@ Millions of users are looking for alternatives right now. Most existing apps foc
 - **Items Saved per User**: Average 10+ items in first week
 - **Completion Rate**: 30%+ items marked as "watched" within 7 days
 - **Retention**: 50%+ users return after 30 days
+- **Instrumentation**: deferred post-MVP. Coarse metrics (items saved, done rate, return visits) derive from existing Convex data; no analytics SDK in the MVP.

@@ -1,0 +1,23 @@
+# Dependencies / build
+node_modules/
+dist/
+
+# Local env
+.env
+.env.local
+.env.*.local
+
+# Convex local state
+.convex/
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+
+# Agent/tooling state
+.commandcode/
+.mimosa/
+
+# OS
+.DS_Store
